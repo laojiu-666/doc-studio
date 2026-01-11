@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Tiptap editor styles */
+.tiptap {
+  @apply outline-none min-h-[500px] p-4;
+}
+
+.tiptap p {
+  @apply my-2;
+}
+
+.tiptap h1 {
+  @apply text-3xl font-bold my-4;
+}
+
+.tiptap h2 {
+  @apply text-2xl font-bold my-3;
+}
+
+.tiptap h3 {
+  @apply text-xl font-bold my-2;
+}
+
+.tiptap ul {
+  @apply list-disc ml-6 my-2;
+}
+
+.tiptap ol {
+  @apply list-decimal ml-6 my-2;
+}
+
+.tiptap blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic my-4;
+}
+
+.tiptap table {
+  @apply border-collapse w-full my-4;
+}
+
+.tiptap th,
+.tiptap td {
+  @apply border border-gray-300 p-2;
+}
+
+.tiptap th {
+  @apply bg-gray-100 font-bold;
+}
+
+.tiptap img {
+  @apply max-w-full h-auto my-4;
+}
+
+.tiptap a {
+  @apply text-blue-600 underline;
+}
+
+.tiptap code {
+  @apply bg-gray-100 px-1 py-0.5 rounded text-sm font-mono;
+}
+
+.tiptap pre {
+  @apply bg-gray-900 text-gray-100 p-4 rounded my-4 overflow-x-auto;
+}
+
+.tiptap pre code {
+  @apply bg-transparent p-0;
+}
+
+/* Keep selection visible when editor loses focus */
+.tiptap .ProseMirror-selectednode {
+  outline: 2px solid #3b82f6;
+}
+
+/* Persistent selection highlight */
+.selection-persist {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+/* Docx preview styles */
+.docx-preview {
+  padding: 20px;
+  background: white;
+}
+
+.docx-preview .docx-wrapper {
+  background: white;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+}
