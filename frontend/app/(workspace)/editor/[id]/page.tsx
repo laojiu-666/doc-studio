@@ -8,6 +8,8 @@ import dynamic from 'next/dynamic';
 import TiptapEditor, { TiptapEditorRef } from '@/components/editor/TiptapEditor';
 import ChatPanel from '@/components/chat/ChatPanel';
 import { ArrowLeft, Save, Download, MessageSquare, Eye, Edit3 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const DocxPreview = dynamic(() => import('@/components/editor/DocxPreview'), {
   ssr: false,
@@ -26,6 +28,7 @@ export default function EditorPage() {
   const router = useRouter();
   const params = useParams();
   const documentId = params.id as string;
+  const { t } = useTranslation();
 
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const [document, setDocument] = useState<Document | null>(null);
@@ -69,9 +72,9 @@ export default function EditorPage() {
     setSaving(true);
     try {
       await api.updateDocument(document.id, { content_html: content });
-      setPreviewKey(prev => prev + 1); // Refresh preview after save
+      setPreviewKey(prev => prev + 1);
     } catch (err: any) {
-      alert(err.message || 'Save failed');
+      alert(err.message || t('editor.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -88,7 +91,7 @@ export default function EditorPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert(err.message || 'Export failed');
+      alert(err.message || t('editor.downloadFailed'));
     }
   };
 
@@ -104,7 +107,6 @@ export default function EditorPage() {
     if (viewMode === 'edit' && editorRef.current) {
       editorRef.current.insertContent(text);
     } else {
-      // In preview mode, append to content and auto-save
       setContent(prev => prev + text);
     }
   }, [viewMode]);
@@ -115,10 +117,8 @@ export default function EditorPage() {
     }
   }, [viewMode]);
 
-  // Auto-save when content changes in preview mode
   const handleAIEdit = useCallback(async (newContent: string) => {
     setContent(newContent);
-    // Auto-save
     if (document) {
       try {
         await api.updateDocument(document.id, { content_html: newContent });
@@ -131,7 +131,6 @@ export default function EditorPage() {
 
   const handleReplaceDocument = useCallback(async (newContent: string) => {
     setContent(newContent);
-    // Auto-save and refresh preview
     if (document) {
       try {
         await api.updateDocument(document.id, { content_html: newContent });
@@ -145,7 +144,7 @@ export default function EditorPage() {
   if (isLoading || !document) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+        <p>{t('common.loading')}</p>
       </div>
     );
   }
@@ -170,25 +169,26 @@ export default function EditorPage() {
                 className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition ${
                   viewMode === 'preview' ? 'bg-white shadow-sm' : 'text-muted-foreground'
                 }`}
-                title="Preview mode - high fidelity view"
+                title={t('editor.preview')}
               >
                 <Eye className="w-3 h-3" />
-                预览
+                {t('editor.preview')}
               </button>
               <button
                 onClick={() => setViewMode('edit')}
                 className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition ${
                   viewMode === 'edit' ? 'bg-white shadow-sm' : 'text-muted-foreground'
                 }`}
-                title="Edit mode - edit with AI"
+                title={t('editor.edit')}
               >
                 <Edit3 className="w-3 h-3" />
-                编辑
+                {t('editor.edit')}
               </button>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             {viewMode === 'edit' && (
               <button
                 onClick={handleSave}
@@ -196,7 +196,7 @@ export default function EditorPage() {
                 className="flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition text-sm"
               >
                 <Save className="w-4 h-4" />
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? t('editor.saving') : t('editor.save')}
               </button>
             )}
             <button
@@ -204,13 +204,14 @@ export default function EditorPage() {
               className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-lg hover:bg-secondary transition text-sm"
             >
               <Download className="w-4 h-4" />
-              Export
+              {t('editor.download')}
             </button>
             <button
               onClick={() => setShowChat(!showChat)}
               className={`p-2 rounded-lg transition ${
                 showChat ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary'
               }`}
+              title={t('editor.chat')}
             >
               <MessageSquare className="w-5 h-5" />
             </button>
@@ -246,6 +247,7 @@ export default function EditorPage() {
             <ChatPanel
               documentId={documentId}
               selectedText={selectedText}
+              documentContent={content}
               onInsertToDocument={handleInsertContent}
               onReplaceSelection={handleReplaceSelection}
               onReplaceDocument={handleReplaceDocument}

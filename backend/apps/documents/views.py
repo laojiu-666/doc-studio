@@ -15,7 +15,7 @@ from .serializers import (
     DocumentUpdateSerializer,
     DocumentVersionSerializer,
 )
-from services.document_converter import DocumentConverter
+from services.document_converter import DocumentConverter, get_converter
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -123,14 +123,14 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def preview(self, request, pk=None):
-        """Get current content as docx for preview."""
+        """Get current content as docx for preview using incremental converter."""
         document = self.get_object()
-        converter = DocumentConverter()
 
-        # Generate docx from current HTML content
-        export_path = converter.html_to_docx(
+        # Use incremental converter for better performance
+        converter = get_converter()
+        export_path = converter.convert(
             document.content_html,
-            f"preview_{document.id}"
+            doc_id=str(document.id)
         )
 
         response = FileResponse(
@@ -139,6 +139,14 @@ class DocumentViewSet(viewsets.ModelViewSet):
         )
         response['Content-Disposition'] = f'inline; filename="preview.docx"'
         return response
+
+    @action(detail=True, methods=['post'])
+    def clear_preview_cache(self, request, pk=None):
+        """Clear preview cache for this document."""
+        document = self.get_object()
+        converter = get_converter()
+        converter.clear_cache(str(document.id))
+        return Response({'status': 'cache cleared'})
 
     def _save_file(self, file, doc_id, file_ext):
         """Save uploaded file to disk."""

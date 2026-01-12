@@ -4,6 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { streamChat } from '@/lib/stream';
 import { Send, Settings, Loader2, Plus } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
+import {
+  parseEditOperations,
+  applyEditOperations,
+  hasEditOperations,
+  extractExplanation,
+} from '@/lib/selector-parser';
 
 type ChatMode = 'edit';
 
@@ -23,12 +30,13 @@ interface ApiKey {
 interface ChatPanelProps {
   documentId: string;
   selectedText?: string;
+  documentContent?: string;  // Current document HTML content
   onInsertToDocument?: (content: string) => void;
   onReplaceSelection?: (content: string) => void;
   onReplaceDocument?: (content: string) => void;
 }
 
-export default function ChatPanel({ documentId, selectedText, onInsertToDocument, onReplaceSelection, onReplaceDocument }: ChatPanelProps) {
+export default function ChatPanel({ documentId, selectedText, documentContent, onInsertToDocument, onReplaceSelection, onReplaceDocument }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,29 +48,34 @@ export default function ChatPanel({ documentId, selectedText, onInsertToDocument
   const [showSettings, setShowSettings] = useState(false);
   const [lockedSelection, setLockedSelection] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
-  // Lock selection when selectedText changes and is not empty
   useEffect(() => {
     if (selectedText) {
       setLockedSelection(selectedText);
     }
   }, [selectedText]);
 
-  // Format message content: remove <doc> tags and HTML tags for display
   const formatMessageContent = (content: string): string => {
-    // Handle empty <doc></doc> (deletion)
+    // Handle new <edit> format
+    if (hasEditOperations(content)) {
+      const explanation = extractExplanation(content);
+      const ops = parseEditOperations(content);
+      const opsCount = ops.length;
+      return explanation + (opsCount > 0 ? ` [已应用 ${opsCount} 处编辑]` : '');
+    }
+
     if (/<doc>\s*<\/doc>/.test(content)) {
       return content.replace(/<doc>\s*<\/doc>/g, '[已删除选中内容]');
     }
-    // Handle <doc-full> (full document replacement)
     if (/<doc-full>[\s\S]*?<\/doc-full>/.test(content)) {
       return content.replace(/<doc-full>[\s\S]*?<\/doc-full>/g, '[已更新文档]');
     }
     return content
-      .replace(/<doc>([\s\S]*?)<\/doc>/g, '$1') // Remove <doc> tags but keep content
-      .replace(/<br\s*\/?>/gi, '\n') // Convert <br> to newline
-      .replace(/<p>([\s\S]*?)<\/p>/gi, '$1\n') // Convert <p> to text with newline
-      .replace(/<[^>]+>/g, '') // Remove other HTML tags
+      .replace(/<doc>([\s\S]*?)<\/doc>/g, '$1')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<p>([\s\S]*?)<\/p>/gi, '$1\n')
+      .replace(/<[^>]+>/g, '')
       .trim();
   };
 
@@ -131,38 +144,45 @@ export default function ChatPanel({ documentId, selectedText, onInsertToDocument
         }
       }
     } catch (err: any) {
-      // Only show error if no content was received
       if (!fullContent) {
         fullContent = `Error: ${err.message}`;
       }
     } finally {
-      // Always add message if we have content
       if (fullContent) {
         setMessages((prev) => [
           ...prev,
           { id: Date.now().toString(), role: 'assistant', content: fullContent },
         ]);
 
-        // In edit mode, extract content from <doc> or <doc-full> tags and insert/replace in document
         if (mode === 'edit' && !fullContent.startsWith('Error:')) {
-          // Check for full document replacement
-          const docFullMatch = fullContent.match(/<doc-full>([\s\S]*?)<\/doc-full>/);
-          if (docFullMatch && onReplaceDocument) {
-            onReplaceDocument(docFullMatch[1].trim());
-            setLockedSelection('');
-          } else {
-            // Check for partial replacement/insertion
-            const docMatch = fullContent.match(/<doc>([\s\S]*?)<\/doc>/);
-            if (docMatch) {
-              const extractedContent = docMatch[1].trim();
-              if (lockedSelection && onReplaceSelection) {
-                onReplaceSelection(extractedContent);
-              } else if (onInsertToDocument) {
-                onInsertToDocument(extractedContent);
-              }
+          // Try new <edit> format first
+          if (hasEditOperations(fullContent) && documentContent && onReplaceDocument) {
+            const operations = parseEditOperations(fullContent);
+            if (operations.length > 0) {
+              const updatedContent = applyEditOperations(documentContent, operations);
+              onReplaceDocument(updatedContent);
+              setLockedSelection('');
             }
           }
-          setLockedSelection('');
+          // Fall back to legacy <doc-full> and <doc> format
+          else {
+            const docFullMatch = fullContent.match(/<doc-full>([\s\S]*?)<\/doc-full>/);
+            if (docFullMatch && onReplaceDocument) {
+              onReplaceDocument(docFullMatch[1].trim());
+              setLockedSelection('');
+            } else {
+              const docMatch = fullContent.match(/<doc>([\s\S]*?)<\/doc>/);
+              if (docMatch) {
+                const extractedContent = docMatch[1].trim();
+                if (lockedSelection && onReplaceSelection) {
+                  onReplaceSelection(extractedContent);
+                } else if (onInsertToDocument) {
+                  onInsertToDocument(extractedContent);
+                }
+              }
+            }
+            setLockedSelection('');
+          }
         }
       }
       setLoading(false);
@@ -191,7 +211,7 @@ export default function ChatPanel({ documentId, selectedText, onInsertToDocument
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
-        <h3 className="font-medium">AI Assistant</h3>
+        <h3 className="font-medium">{t('chat.title')}</h3>
         <div className="flex items-center gap-1">
           <button
             onClick={handleNewChat}
@@ -203,7 +223,7 @@ export default function ChatPanel({ documentId, selectedText, onInsertToDocument
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="p-1.5 hover:bg-secondary rounded transition"
-            title="Settings"
+            title={t('common.settings')}
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -213,14 +233,14 @@ export default function ChatPanel({ documentId, selectedText, onInsertToDocument
       {/* Settings */}
       {showSettings && (
         <div className="p-3 border-b border-border bg-secondary/30">
-          <label className="block text-sm font-medium mb-1">API Key</label>
+          <label className="block text-sm font-medium mb-1">{t('chat.selectApiKey')}</label>
           <select
             value={selectedApiKey}
             onChange={(e) => setSelectedApiKey(e.target.value)}
             className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {apiKeys.length === 0 ? (
-              <option value="">No API keys configured</option>
+              <option value="">{t('chat.noApiKey')}</option>
             ) : (
               apiKeys.map((key) => (
                 <option key={key.id} value={key.id}>
@@ -231,7 +251,7 @@ export default function ChatPanel({ documentId, selectedText, onInsertToDocument
           </select>
           {apiKeys.length === 0 && (
             <p className="text-xs text-muted-foreground mt-1">
-              Go to Settings to add an API key
+              {t('chat.goToSettings')}
             </p>
           )}
         </div>
@@ -303,7 +323,7 @@ export default function ChatPanel({ documentId, selectedText, onInsertToDocument
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask AI about your document..."
+            placeholder={t('chat.placeholder')}
             className="flex-1 px-3 py-2 text-sm border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-ring"
             rows={2}
             disabled={loading || !selectedApiKey}
@@ -312,6 +332,7 @@ export default function ChatPanel({ documentId, selectedText, onInsertToDocument
             onClick={handleSend}
             disabled={loading || !input.trim() || !selectedApiKey}
             className="px-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+            title={t('chat.send')}
           >
             <Send className="w-4 h-4" />
           </button>

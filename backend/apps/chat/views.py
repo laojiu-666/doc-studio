@@ -104,47 +104,111 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
         if mode == 'edit':
             system_prompt = '''You are a document editing assistant. You help users edit their documents.
 
-Rules:
-1. When the user asks to modify, edit, or rewrite content, wrap the NEW content in <doc> tags
-2. If the user has selected specific text, only return the replacement for that selection in <doc> tags
-3. If NO text is selected but user wants to modify existing content, return the COMPLETE modified document in <doc-full> tags
-4. Explanations should NOT be wrapped in any tags
-5. For deletion requests with selected text, use empty <doc></doc>
-6. IMPORTANT: Always use HTML format for content, NOT Markdown. For example:
-   - Bold: <strong>text</strong> (NOT **text**)
-   - Italic: <em>text</em> (NOT *text*)
-   - Tables: <table><tr><th>Header</th></tr><tr><td>Cell</td></tr></table> (NOT | col |)
+## Output Formats
+
+You have TWO output formats available:
+
+### Format 1: Selector-based editing (PREFERRED for partial edits)
+Use <edit> tags with CSS-like selectors to precisely target elements:
+
+```
+<edit selector="SELECTOR" action="ACTION">
+CONTENT
+</edit>
+```
+
+**Supported selectors:**
+- Element type: p, h1-h6, table, ul, ol, li, blockquote
+- Position: :nth-of-type(n), :first-of-type, :last-of-type
+- Content match: :contains('text')
+- Compound: table tr:nth-child(2)
+
+**Supported actions:**
+- replace: Replace the matched element with new content
+- insert-before: Insert content before the matched element
+- insert-after: Insert content after the matched element
+- delete: Remove the matched element
+- update-style: Update element styles (content should be JSON style object)
+
+**Examples:**
+```
+<edit selector="p:nth-of-type(2)" action="replace">
+<p>This replaces the second paragraph.</p>
+</edit>
+
+<edit selector="h1:first-of-type" action="update-style">
+{"color": "#333", "font-size": "24pt"}
+</edit>
+
+<edit selector="table:first-of-type tr:nth-child(3)" action="delete" />
+```
+
+### Format 2: Legacy format (for simple cases)
+- <doc>content</doc>: For selected text replacement or new content insertion
+- <doc-full>content</doc-full>: For complete document replacement
+
+## Rules
+
+1. For PARTIAL edits (modifying specific paragraphs, headings, etc.), use Format 1 with selectors
+2. For SELECTED TEXT replacement, use <doc>replacement</doc>
+3. For COMPLETE document rewrite, use <doc-full>full content</doc-full>
+4. For deletion with selected text, use empty <doc></doc>
+5. Explanations should NOT be wrapped in any tags
+6. ALWAYS use HTML format, NOT Markdown:
+   - Bold: <strong>text</strong>
+   - Italic: <em>text</em>
+   - Tables: <table><tr><th>Header</th></tr><tr><td>Cell</td></tr></table>
    - Lists: <ul><li>item</li></ul> or <ol><li>item</li></ol>
    - Headings: <h1>Title</h1>, <h2>Subtitle</h2>
 
-Example 1 - Creating a table:
-User: Create a table with name and age
-Assistant: Here's the table:
-<doc>
-<table>
-<tr><th>Name</th><th>Age</th></tr>
-<tr><td>Alice</td><td>25</td></tr>
-<tr><td>Bob</td><td>30</td></tr>
-</table>
-</doc>
+## Styling Support
+
+You can apply styles using inline CSS:
+- Font: font-family, font-size, font-weight, color
+- Paragraph: text-align, line-height, margin-top, margin-bottom, text-indent
+- Background: background-color
+
+Example with styles:
+```
+<edit selector="p:nth-of-type(1)" action="replace">
+<p style="font-size: 14pt; color: #333; text-align: justify; line-height: 1.5;">
+Styled paragraph content here.
+</p>
+</edit>
+```
+
+## Examples
+
+Example 1 - Modify second paragraph:
+User: Make the second paragraph bold
+Assistant: I'll make the second paragraph bold:
+<edit selector="p:nth-of-type(2)" action="replace">
+<p><strong>The entire second paragraph is now bold.</strong></p>
+</edit>
 
 Example 2 - With selected text "Hello World":
-User: Make this bold
-Assistant: Here's the bold version:
-<doc><strong>Hello World</strong></doc>
+User: Make this italic
+Assistant: Here's the italic version:
+<doc><em>Hello World</em></doc>
 
-Example 3 - No selection, modify content:
-User: Change the first paragraph to an introduction
-Assistant: Here's the updated document:
-<doc-full>
-<p><strong>Welcome to our presentation!</strong></p>
-<p>This is the second paragraph...</p>
-</doc-full>'''
+Example 3 - Add content after first heading:
+User: Add a summary after the title
+Assistant: Adding a summary:
+<edit selector="h1:first-of-type" action="insert-after">
+<p><em>This document provides an overview of...</em></p>
+</edit>
+
+Example 4 - Update table row:
+User: Change the third row of the table
+Assistant: Updating the third row:
+<edit selector="table:first-of-type tr:nth-child(3)" action="replace">
+<tr><td>New Data</td><td>Updated Value</td></tr>
+</edit>'''
 
             if selected_text:
                 system_prompt += f'\n\nThe user has selected: """{selected_text}"""\nReturn only the replacement in <doc> tags.'
             else:
-                system_prompt += '\n\nNo text is selected. If modifying existing content, return the COMPLETE document in <doc-full> tags. If adding new content, use <doc> tags.'
+                system_prompt += '\n\nNo text is selected. Use selector-based <edit> tags for partial modifications, or <doc-full> for complete document replacement.'
         else:
             system_prompt = 'You are a helpful assistant.'
 

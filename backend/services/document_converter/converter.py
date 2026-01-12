@@ -11,9 +11,14 @@ from docx import Document
 from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
+from .style_parser import StyleParser
+
 
 class DocumentConverter:
     """Service for converting documents between formats."""
+
+    def __init__(self):
+        self.style_parser = StyleParser()
 
     def docx_to_html(self, file_path: str) -> str:
         """
@@ -48,9 +53,31 @@ class DocumentConverter:
         # Parse HTML
         soup = BeautifulSoup(html_content, 'html.parser')
 
+        # Process page setup if present
+        page_setup_elem = soup.find('page-setup')
+        if page_setup_elem:
+            attrs = {k: v for k, v in page_setup_elem.attrs.items()}
+            page_setup = self.style_parser.parse_page_setup(attrs)
+            self.style_parser.apply_page_setup(doc.sections[0], page_setup)
+
+        # Process header if present
+        header_elem = soup.find('header')
+        if header_elem:
+            section = doc.sections[0]
+            header = section.header
+            header.paragraphs[0].text = header_elem.get_text()
+
+        # Process footer if present
+        footer_elem = soup.find('footer')
+        if footer_elem:
+            section = doc.sections[0]
+            footer = section.footer
+            footer.paragraphs[0].text = footer_elem.get_text()
+
         # Process each element
         for element in soup.children:
-            self._process_element(doc, element)
+            if element.name not in ['page-setup', 'header', 'footer']:
+                self._process_element(doc, element)
 
         # Save to temp file
         temp_dir = tempfile.gettempdir()
@@ -68,25 +95,51 @@ class DocumentConverter:
                 doc.add_paragraph(text)
             return
 
+        # Get element styles
+        styles = {}
+        if hasattr(element, 'get') and element.get('style'):
+            styles = self.style_parser.parse_style_string(element.get('style'))
+
         if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
             level = int(element.name[1])
-            heading = doc.add_heading(element.get_text(), level=level)
+            heading = doc.add_heading('', level=level)
+            self._process_inline(heading, element)
+            if styles:
+                para_style = self.style_parser.parse_paragraph_style(styles)
+                self.style_parser.apply_paragraph_style(heading, para_style)
 
         elif element.name == 'p':
             para = doc.add_paragraph()
             self._process_inline(para, element)
+            if styles:
+                para_style = self.style_parser.parse_paragraph_style(styles)
+                self.style_parser.apply_paragraph_style(para, para_style)
 
         elif element.name == 'ul':
             for li in element.find_all('li', recursive=False):
-                para = doc.add_paragraph(li.get_text(), style='List Bullet')
+                para = doc.add_paragraph(style='List Bullet')
+                self._process_inline(para, li)
+                if li.get('style'):
+                    li_styles = self.style_parser.parse_style_string(li.get('style'))
+                    para_style = self.style_parser.parse_paragraph_style(li_styles)
+                    self.style_parser.apply_paragraph_style(para, para_style)
 
         elif element.name == 'ol':
             for li in element.find_all('li', recursive=False):
-                para = doc.add_paragraph(li.get_text(), style='List Number')
+                para = doc.add_paragraph(style='List Number')
+                self._process_inline(para, li)
+                if li.get('style'):
+                    li_styles = self.style_parser.parse_style_string(li.get('style'))
+                    para_style = self.style_parser.parse_paragraph_style(li_styles)
+                    self.style_parser.apply_paragraph_style(para, para_style)
 
         elif element.name == 'blockquote':
-            para = doc.add_paragraph(element.get_text())
+            para = doc.add_paragraph()
             para.style = 'Quote'
+            self._process_inline(para, element)
+            if styles:
+                para_style = self.style_parser.parse_paragraph_style(styles)
+                self.style_parser.apply_paragraph_style(para, para_style)
 
         elif element.name == 'table':
             self._process_table(doc, element)
@@ -101,7 +154,9 @@ class DocumentConverter:
         for child in element.children:
             if child.name is None:
                 # Text node
-                paragraph.add_run(str(child))
+                text = str(child)
+                if text:
+                    paragraph.add_run(text)
             elif child.name == 'strong' or child.name == 'b':
                 run = paragraph.add_run(child.get_text())
                 run.bold = True
@@ -111,11 +166,24 @@ class DocumentConverter:
             elif child.name == 'u':
                 run = paragraph.add_run(child.get_text())
                 run.underline = True
+            elif child.name == 's' or child.name == 'strike':
+                run = paragraph.add_run(child.get_text())
+                run.font.strike = True
+            elif child.name == 'span':
+                run = paragraph.add_run(child.get_text())
+                if child.get('style'):
+                    span_styles = self.style_parser.parse_style_string(child.get('style'))
+                    font_style = self.style_parser.parse_font_style(span_styles)
+                    self.style_parser.apply_font_style(run, font_style)
             elif child.name == 'a':
-                # Links - just add text for now
-                paragraph.add_run(child.get_text())
+                # Links - add text with underline
+                run = paragraph.add_run(child.get_text())
+                run.underline = True
+            elif child.name == 'br':
+                paragraph.add_run('\n')
             else:
-                paragraph.add_run(child.get_text())
+                # Recursively process nested inline elements
+                self._process_inline(paragraph, child)
 
     def _process_table(self, doc: Document, table_element):
         """Process an HTML table element."""
