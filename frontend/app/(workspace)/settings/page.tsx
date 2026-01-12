@@ -22,9 +22,6 @@ interface ApiKey {
 interface LLMModel {
   model_id: string;
   display_name: string;
-  input_price?: number | null;
-  output_price?: number | null;
-  context_length?: number | null;
 }
 
 interface LLMProvider {
@@ -36,22 +33,6 @@ interface LLMProvider {
   is_active: boolean;
   models: LLMModel[];
 }
-
-// Helper function to format price
-const formatPrice = (price: number | null | undefined): string => {
-  if (price === null || price === undefined) return '-';
-  if (price < 0.01) return `$${price.toFixed(4)}`;
-  if (price < 1) return `$${price.toFixed(2)}`;
-  return `$${price.toFixed(2)}`;
-};
-
-// Helper function to format context length
-const formatContextLength = (length: number | null | undefined): string => {
-  if (length === null || length === undefined) return '-';
-  if (length >= 1000000) return `${(length / 1000000).toFixed(1)}M`;
-  if (length >= 1000) return `${(length / 1000).toFixed(0)}K`;
-  return length.toString();
-};
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -224,11 +205,6 @@ export default function SettingsPage() {
 
   const getCurrentProvider = () => {
     return providers.find(p => p.id === providerId);
-  };
-
-  const getSelectedModel = (): LLMModel | undefined => {
-    const models = getModelsForProvider(providerId);
-    return models.find(m => m.model_id === model);
   };
 
   // Admin functions
@@ -467,49 +443,28 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="block text-sm font-medium mb-1">{t('settings.model')}</label>
-                  <select
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    className="w-full px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-                    required
-                  >
-                    <option value="">{t('settings.modelPlaceholder')}</option>
-                    {getModelsForProvider(providerId).map((m) => (
-                      <option key={m.model_id} value={m.model_id}>
-                        {m.display_name}
-                        {m.input_price !== null && m.input_price !== undefined && 
-                          ` (${formatPrice(m.input_price)}/${formatPrice(m.output_price)})`}
-                      </option>
-                    ))}
-                  </select>
-                  {/* Model info display */}
-                  {model && (() => {
-                    const selectedModel = getSelectedModel();
-                    if (selectedModel && (selectedModel.input_price || selectedModel.context_length)) {
-                      return (
-                        <div className="mt-2 p-2 bg-secondary/50 rounded text-xs text-muted-foreground">
-                          <div className="flex flex-wrap gap-x-4 gap-y-1">
-                            {selectedModel.input_price !== null && selectedModel.input_price !== undefined && (
-                              <span>
-                                {t('settings.modelInfo.inputPrice')}: {formatPrice(selectedModel.input_price)}/M
-                              </span>
-                            )}
-                            {selectedModel.output_price !== null && selectedModel.output_price !== undefined && (
-                              <span>
-                                {t('settings.modelInfo.outputPrice')}: {formatPrice(selectedModel.output_price)}/M
-                              </span>
-                            )}
-                            {selectedModel.context_length && (
-                              <span>
-                                {t('settings.modelInfo.contextLength')}: {formatContextLength(selectedModel.context_length)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
+                  <div className="flex gap-2">
+                    <select
+                      value={getModelsForProvider(providerId).some(m => m.model_id === model) ? model : ''}
+                      onChange={(e) => setModel(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="">{t('settings.modelPlaceholder')}</option>
+                      {getModelsForProvider(providerId).map((m) => (
+                        <option key={m.model_id} value={m.model_id}>
+                          {m.display_name} ({m.model_id})
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder={t('settings.customModel')}
+                      className="flex-1 px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -565,7 +520,7 @@ export default function SettingsPage() {
                   <div>
                     <h3 className="font-medium">{key.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {key.provider_display_name || key.provider_name} • {key.model} • {key.api_key_masked}
+                      {key.provider_display_name || key.provider_name} · {key.model} · {key.api_key_masked}
                     </p>
                     {key.base_url && (
                       <p className="text-xs text-muted-foreground mt-1">

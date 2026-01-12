@@ -89,6 +89,7 @@
     "baseUrlNote": "Do not include /v1 suffix, it will be added automatically",
     "model": "Model",
     "modelPlaceholder": "Select model",
+    "customModel": "Custom model ID",
     "test": "Test",
     "testing": "Testing...",
     "testSuccess": "Connection successful!",

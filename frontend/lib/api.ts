@@ -51,6 +51,17 @@ class ApiClient {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Clear tokens on 401
+        this.setToken(null);
+        localStorage.removeItem('refresh_token');
+        // Redirect to login page
+        if (typeof window !== 'undefined') {
+          alert('登录已过期，请重新登录');
+          window.location.href = '/login';
+        }
+        throw new Error('登录已过期，请重新登录');
+      }
       const error = await response.json().catch(() => ({ message: 'Request failed' }));
       throw new Error(error.message || error.error || 'Request failed');
     }

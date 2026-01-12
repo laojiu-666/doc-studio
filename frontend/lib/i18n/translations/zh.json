@@ -89,6 +89,7 @@
     "baseUrlNote": "无需填写 /v1 后缀，系统会自动添加",
     "model": "模型",
     "modelPlaceholder": "选择模型",
+    "customModel": "自定义模型ID",
     "test": "测试",
     "testing": "测试中...",
     "testSuccess": "连接成功！",
