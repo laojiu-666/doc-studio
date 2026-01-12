@@ -153,7 +153,7 @@ class ApiClient {
 
   async createApiKey(data: {
     name: string;
-    provider: string;
+    provider_id: string;
     api_key: string;
     base_url?: string;
     model: string;
@@ -166,7 +166,7 @@ class ApiClient {
 
   async updateApiKey(id: string, data: {
     name?: string;
-    provider?: string;
+    provider_id?: string;
     api_key?: string;
     base_url?: string;
     model?: string;
@@ -185,6 +185,44 @@ class ApiClient {
     return this.request<{ success: boolean; message?: string; error?: string }>(
       `/llm/api-keys/${id}/test/`,
       { method: 'POST' }
+    );
+  }
+
+  // LLM Providers (for regular users)
+  async getProviders() {
+    return this.request<any[]>('/llm/providers/');
+  }
+
+  // Admin: Provider Management
+  async adminGetProviders() {
+    return this.request<any[]>('/llm/admin/providers/');
+  }
+
+  async adminInitializeProviders() {
+    return this.request<{ success: boolean; message: string }>(
+      '/llm/admin/providers/initialize/',
+      { method: 'POST' }
+    );
+  }
+
+  async adminSyncModels(providerId: string, apiKey: string) {
+    return this.request<{ success: boolean; message: string; models_count?: number }>(
+      `/llm/admin/providers/${providerId}/sync_models/`,
+      { method: 'POST', body: { api_key: apiKey } }
+    );
+  }
+
+  async adminResetToDefault(providerId: string) {
+    return this.request<{ success: boolean; message: string }>(
+      `/llm/admin/providers/${providerId}/reset_to_default/`,
+      { method: 'POST' }
+    );
+  }
+
+  async adminSyncAllModels(apiKeys: Record<string, string>) {
+    return this.request<{ success: boolean; results: Record<string, any> }>(
+      '/llm/admin/sync-all/',
+      { method: 'POST', body: { api_keys: apiKeys } }
     );
   }
 

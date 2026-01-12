@@ -46,8 +46,8 @@ class LoginView(APIView):
 
         if not user:
             return Response(
-                {'error': 'Invalid credentials'},
-                status=status.HTTP_401_UNAUTHORIZED
+                {'error': '邮箱或密码错误'},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
         refresh = RefreshToken.for_user(user)
@@ -70,7 +70,7 @@ class MeView(APIView):
 
 class LogoutView(APIView):
     """User logout - blacklist refresh token."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny,)
 
     def post(self, request):
         try:

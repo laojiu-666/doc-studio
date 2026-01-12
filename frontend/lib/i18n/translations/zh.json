@@ -1,0 +1,129 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "save": "保存",
+    "saving": "保存中...",
+    "cancel": "取消",
+    "delete": "删除",
+    "confirm": "确认",
+    "settings": "设置",
+    "logout": "退出登录",
+    "login": "登录",
+    "register": "注册",
+    "email": "邮箱",
+    "password": "密码",
+    "submit": "提交"
+  },
+  "home": {
+    "title": "Doc Studio",
+    "subtitle": "AI 智能文档编辑器",
+    "description": "上传、编辑并使用 AI 增强您的文档。支持 Word 文档的智能编辑功能。",
+    "loginBtn": "登录",
+    "registerBtn": "注册"
+  },
+  "auth": {
+    "loginTitle": "登录 Doc Studio",
+    "registerTitle": "注册 Doc Studio",
+    "loggingIn": "登录中...",
+    "registering": "注册中...",
+    "noAccount": "还没有账号？",
+    "hasAccount": "已有账号？",
+    "loginFailed": "登录失败",
+    "registerFailed": "注册失败",
+    "username": "用户名",
+    "confirmPassword": "确认密码",
+    "passwordMismatch": "两次输入的密码不一致"
+  },
+  "documents": {
+    "title": "我的文档",
+    "upload": "上传文档",
+    "uploading": "上传中...",
+    "empty": "暂无文档。上传您的第一个文档开始使用。",
+    "deleteConfirm": "确定要删除这个文档吗？",
+    "uploadFailed": "上传失败",
+    "deleteFailed": "删除失败"
+  },
+  "editor": {
+    "save": "保存",
+    "saving": "保存中...",
+    "download": "下载",
+    "downloading": "下载中...",
+    "chat": "AI 对话",
+    "preview": "预览",
+    "edit": "编辑",
+    "loadingPreview": "加载预览中...",
+    "saveFailed": "保存失败",
+    "downloadFailed": "下载失败"
+  },
+  "chat": {
+    "title": "AI 助手",
+    "placeholder": "输入消息...",
+    "send": "发送",
+    "noApiKey": "未配置 API 密钥",
+    "goToSettings": "前往设置添加 API 密钥",
+    "selectApiKey": "选择 API 密钥",
+    "thinking": "思考中..."
+  },
+  "aiToolbar": {
+    "title": "AI 操作：",
+    "polish": "润色",
+    "expand": "扩写",
+    "summarize": "总结"
+  },
+  "settings": {
+    "title": "设置",
+    "apiKeys": "API 密钥管理",
+    "apiKeysDesc": "配置您的 LLM API 密钥以使用 AI 功能",
+    "addKey": "添加密钥",
+    "editKey": "编辑密钥",
+    "name": "名称",
+    "provider": "提供商",
+    "providerHint": "用于适配 API 参数格式",
+    "apiKey": "API 密钥",
+    "apiKeyHint": "清空并输入新值以更改",
+    "apiKeyEditHint": "留空保持当前密钥",
+    "apiKeyPlaceholderEdit": "输入新密钥以更新",
+    "currentKey": "当前密钥",
+    "baseUrl": "Base URL",
+    "baseUrlHint": "可选，用于自定义端点",
+    "baseUrlNote": "无需填写 /v1 后缀，系统会自动添加",
+    "model": "模型",
+    "modelPlaceholder": "选择模型",
+    "test": "测试",
+    "testing": "测试中...",
+    "testSuccess": "连接成功！",
+    "testFailed": "连接失败",
+    "noKeys": "暂无 API 密钥",
+    "noKeysHint": "添加 API 密钥以使用 AI 功能",
+    "back": "返回文档",
+    "deleteConfirm": "确定要删除这个 API 密钥吗？",
+    "saveFailed": "保存 API 密钥失败",
+    "deleteFailed": "删除 API 密钥失败",
+    "modelInfo": {
+      "inputPrice": "输入",
+      "outputPrice": "输出",
+      "contextLength": "上下文"
+    },
+    "admin": {
+      "title": "管理员面板",
+      "desc": "管理供应商和模型配置。输入各供应商的 API 密钥后点击同步按钮从官方 API 获取最新模型列表。",
+      "initialize": "初始化默认数据",
+      "initSuccess": "默认供应商和模型初始化成功",
+      "initFailed": "初始化失败",
+      "sync": "同步",
+      "syncSuccess": "模型同步成功",
+      "syncFailed": "模型同步失败",
+      "reset": "重置",
+      "resetConfirm": "确定要重置为默认模型列表吗？",
+      "resetSuccess": "已重置为默认模型",
+      "resetFailed": "重置失败",
+      "models": "个模型",
+      "apiKeyRequired": "请先输入该供应商的 API 密钥"
+    }
+  },
+  "language": {
+    "zh": "中文",
+    "en": "English",
+    "switch": "切换语言"
+  }
+}

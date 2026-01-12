@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import { FileText, Upload, Trash2, LogOut, Settings } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 interface Document {
   id: string;
@@ -18,6 +20,7 @@ interface Document {
 export default function DocumentsPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -55,20 +58,20 @@ export default function DocumentsPage() {
       const doc = await api.uploadDocument(file);
       router.push(`/editor/${doc.id}`);
     } catch (err: any) {
-      alert(err.message || 'Upload failed');
+      alert(err.message || t('documents.uploadFailed'));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
+    if (!confirm(t('documents.deleteConfirm'))) return;
 
     try {
       await api.deleteDocument(id);
       setDocuments(documents.filter((d) => d.id !== id));
     } catch (err: any) {
-      alert(err.message || 'Delete failed');
+      alert(err.message || t('documents.deleteFailed'));
     }
   };
 
@@ -80,7 +83,7 @@ export default function DocumentsPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+        <p>{t('common.loading')}</p>
       </div>
     );
   }
@@ -93,17 +96,18 @@ export default function DocumentsPage() {
           <h1 className="text-xl font-bold">Doc Studio</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{user?.email}</span>
+            <LanguageSwitcher />
             <Link
               href="/settings"
               className="p-2 hover:bg-secondary rounded-lg transition"
-              title="Settings"
+              title={t('common.settings')}
             >
               <Settings className="w-5 h-5" />
             </Link>
             <button
               onClick={handleLogout}
               className="p-2 hover:bg-secondary rounded-lg transition"
-              title="Logout"
+              title={t('common.logout')}
             >
               <LogOut className="w-5 h-5" />
             </button>
@@ -114,10 +118,10 @@ export default function DocumentsPage() {
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold">My Documents</h2>
+          <h2 className="text-2xl font-bold">{t('documents.title')}</h2>
           <label className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg cursor-pointer hover:opacity-90 transition">
             <Upload className="w-4 h-4" />
-            {uploading ? 'Uploading...' : 'Upload Document'}
+            {uploading ? t('documents.uploading') : t('documents.upload')}
             <input
               type="file"
               accept=".docx,.doc"
@@ -131,7 +135,7 @@ export default function DocumentsPage() {
         {documents.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <p>No documents yet. Upload your first document to get started.</p>
+            <p>{t('documents.empty')}</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -158,7 +162,7 @@ export default function DocumentsPage() {
                   <button
                     onClick={() => handleDelete(doc.id)}
                     className="p-1 text-red-500 hover:bg-red-50 rounded transition"
-                    title="Delete"
+                    title={t('common.delete')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

@@ -1,0 +1,129 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "settings": "Settings",
+    "logout": "Logout",
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Submit"
+  },
+  "home": {
+    "title": "Doc Studio",
+    "subtitle": "AI-Powered Document Editor",
+    "description": "Upload, edit, and enhance your documents with AI assistance. Support for Word documents with intelligent editing features.",
+    "loginBtn": "Login",
+    "registerBtn": "Register"
+  },
+  "auth": {
+    "loginTitle": "Login to Doc Studio",
+    "registerTitle": "Register for Doc Studio",
+    "loggingIn": "Logging in...",
+    "registering": "Registering...",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "loginFailed": "Login failed",
+    "registerFailed": "Registration failed",
+    "username": "Username",
+    "confirmPassword": "Confirm Password",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "documents": {
+    "title": "My Documents",
+    "upload": "Upload Document",
+    "uploading": "Uploading...",
+    "empty": "No documents yet. Upload your first document to get started.",
+    "deleteConfirm": "Are you sure you want to delete this document?",
+    "uploadFailed": "Upload failed",
+    "deleteFailed": "Delete failed"
+  },
+  "editor": {
+    "save": "Save",
+    "saving": "Saving...",
+    "download": "Download",
+    "downloading": "Downloading...",
+    "chat": "AI Chat",
+    "preview": "Preview",
+    "edit": "Edit",
+    "loadingPreview": "Loading preview...",
+    "saveFailed": "Save failed",
+    "downloadFailed": "Download failed"
+  },
+  "chat": {
+    "title": "AI Assistant",
+    "placeholder": "Type a message...",
+    "send": "Send",
+    "noApiKey": "No API keys configured",
+    "goToSettings": "Go to Settings to add an API key",
+    "selectApiKey": "Select API Key",
+    "thinking": "Thinking..."
+  },
+  "aiToolbar": {
+    "title": "AI Actions:",
+    "polish": "Polish",
+    "expand": "Expand",
+    "summarize": "Summarize"
+  },
+  "settings": {
+    "title": "Settings",
+    "apiKeys": "API Key Management",
+    "apiKeysDesc": "Configure your LLM API keys for AI features",
+    "addKey": "Add Key",
+    "editKey": "Edit Key",
+    "name": "Name",
+    "provider": "Provider",
+    "providerHint": "for API format adaptation",
+    "apiKey": "API Key",
+    "apiKeyHint": "clear and enter new value to change",
+    "apiKeyEditHint": "leave empty to keep current",
+    "apiKeyPlaceholderEdit": "Enter new key to update",
+    "currentKey": "Current key",
+    "baseUrl": "Base URL",
+    "baseUrlHint": "optional, for custom endpoints",
+    "baseUrlNote": "Do not include /v1 suffix, it will be added automatically",
+    "model": "Model",
+    "modelPlaceholder": "Select model",
+    "test": "Test",
+    "testing": "Testing...",
+    "testSuccess": "Connection successful!",
+    "testFailed": "Connection failed",
+    "noKeys": "No API keys configured yet",
+    "noKeysHint": "Add an API key to use AI features",
+    "back": "Back to Documents",
+    "deleteConfirm": "Are you sure you want to delete this API key?",
+    "saveFailed": "Failed to save API key",
+    "deleteFailed": "Failed to delete API key",
+    "modelInfo": {
+      "inputPrice": "Input",
+      "outputPrice": "Output",
+      "contextLength": "Context"
+    },
+    "admin": {
+      "title": "Admin Panel",
+      "desc": "Manage provider and model configurations. Enter API keys for each provider and click sync to fetch the latest model list from official APIs.",
+      "initialize": "Initialize Defaults",
+      "initSuccess": "Default providers and models initialized successfully",
+      "initFailed": "Initialization failed",
+      "sync": "Sync",
+      "syncSuccess": "Models synced successfully",
+      "syncFailed": "Model sync failed",
+      "reset": "Reset",
+      "resetConfirm": "Are you sure you want to reset to default models?",
+      "resetSuccess": "Reset to default models",
+      "resetFailed": "Reset failed",
+      "models": "models",
+      "apiKeyRequired": "Please enter the API key for this provider first"
+    }
+  },
+  "language": {
+    "zh": "中文",
+    "en": "English",
+    "switch": "Switch Language"
+  }
+}

@@ -4,10 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function RegisterPage() {
   const router = useRouter();
   const register = useAuthStore((state) => state.register);
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +23,7 @@ export default function RegisterPage() {
     setError('');
 
     if (password !== passwordConfirm) {
-      setError('Passwords do not match');
+      setError(t('auth.passwordMismatch'));
       return;
     }
 
@@ -30,16 +33,19 @@ export default function RegisterPage() {
       await register(email, username, password, passwordConfirm);
       router.push('/documents');
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || t('auth.registerFailed'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-8">Create Account</h1>
+        <h1 className="text-2xl font-bold text-center mb-8">{t('auth.registerTitle')}</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -49,7 +55,7 @@ export default function RegisterPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1">{t('common.email')}</label>
             <input
               type="email"
               value={email}
@@ -60,7 +66,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Username</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.username')}</label>
             <input
               type="text"
               value={username}
@@ -71,7 +77,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1">{t('common.password')}</label>
             <input
               type="password"
               value={password}
@@ -83,7 +89,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Confirm Password</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.confirmPassword')}</label>
             <input
               type="password"
               value={passwordConfirm}
@@ -98,14 +104,14 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition"
           >
-            {loading ? 'Creating account...' : 'Register'}
+            {loading ? t('auth.registering') : t('common.register')}
           </button>
         </form>
 
         <p className="text-center mt-4 text-sm text-muted-foreground">
-          Already have an account?{' '}
+          {t('auth.hasAccount')}{' '}
           <Link href="/login" className="text-primary hover:underline">
-            Login
+            {t('common.login')}
           </Link>
         </p>
       </div>

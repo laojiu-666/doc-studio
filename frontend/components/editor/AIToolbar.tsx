@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Wand2, Sparkles, FileText, Loader2 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 interface AIToolbarProps {
   selectedText: string;
@@ -15,6 +16,7 @@ export default function AIToolbar({
   documentId,
 }: AIToolbarProps) {
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const hasSelection = selectedText.trim().length > 0;
 
@@ -28,40 +30,40 @@ export default function AIToolbar({
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 bg-secondary/50 border-b border-border">
-      <span className="text-sm text-muted-foreground mr-2">AI Actions:</span>
+      <span className="text-sm text-muted-foreground mr-2">{t('aiToolbar.title')}</span>
 
       <button
         onClick={() => handleQuickAction('polish')}
         disabled={!hasSelection || loading}
         className="flex items-center gap-1.5 px-3 py-1 text-sm rounded-lg bg-white border border-border hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition"
-        title="Polish selected text"
+        title={t('aiToolbar.polish')}
       >
         {loading ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : (
           <Sparkles className="w-3.5 h-3.5" />
         )}
-        Polish
+        {t('aiToolbar.polish')}
       </button>
 
       <button
-        onClick={() => handleQuickAction('simplify')}
+        onClick={() => handleQuickAction('summarize')}
         disabled={!hasSelection || loading}
         className="flex items-center gap-1.5 px-3 py-1 text-sm rounded-lg bg-white border border-border hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition"
-        title="Simplify selected text"
+        title={t('aiToolbar.summarize')}
       >
         <FileText className="w-3.5 h-3.5" />
-        Simplify
+        {t('aiToolbar.summarize')}
       </button>
 
       <button
         onClick={() => handleQuickAction('expand')}
         disabled={!hasSelection || loading}
         className="flex items-center gap-1.5 px-3 py-1 text-sm rounded-lg bg-white border border-border hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition"
-        title="Expand selected text"
+        title={t('aiToolbar.expand')}
       >
         <Wand2 className="w-3.5 h-3.5" />
-        Expand
+        {t('aiToolbar.expand')}
       </button>
 
       {hasSelection && (

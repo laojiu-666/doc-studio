@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     # Third party
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     # Local apps
     'apps.accounts',
@@ -97,6 +98,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
+
+# Authentication backends (support email login)
+AUTHENTICATION_BACKENDS = [
+    'apps.accounts.backends.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # REST Framework
 REST_FRAMEWORK = {
