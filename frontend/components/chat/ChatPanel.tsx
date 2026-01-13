@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { streamChat } from '@/lib/stream';
-import { Send, Settings, Loader2, Plus } from 'lucide-react';
+import { Send, Settings, Loader2, Plus, MessageSquare, Sparkles } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
   parseEditOperations,
@@ -13,6 +13,7 @@ import {
 } from '@/lib/selector-parser';
 
 type ChatMode = 'edit';
+type VisualMode = 'expanded' | 'compact';
 
 interface Message {
   id: string;
@@ -28,15 +29,24 @@ interface ApiKey {
 }
 
 interface ChatPanelProps {
-  documentId: string;
+  documentId?: string;
   selectedText?: string;
-  documentContent?: string;  // Current document HTML content
+  documentContent?: string;
   onInsertToDocument?: (content: string) => void;
   onReplaceSelection?: (content: string) => void;
   onReplaceDocument?: (content: string) => void;
+  visualMode?: VisualMode;
 }
 
-export default function ChatPanel({ documentId, selectedText, documentContent, onInsertToDocument, onReplaceSelection, onReplaceDocument }: ChatPanelProps) {
+export default function ChatPanel({
+  documentId,
+  selectedText,
+  documentContent,
+  onInsertToDocument,
+  onReplaceSelection,
+  onReplaceDocument,
+  visualMode = 'compact',
+}: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,7 +67,6 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
   }, [selectedText]);
 
   const formatMessageContent = (content: string): string => {
-    // Handle new <edit> format
     if (hasEditOperations(content)) {
       const explanation = extractExplanation(content);
       const ops = parseEditOperations(content);
@@ -81,7 +90,9 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
 
   useEffect(() => {
     loadApiKeys();
-    createOrLoadSession();
+    if (documentId) {
+      createOrLoadSession();
+    }
   }, [documentId]);
 
   useEffect(() => {
@@ -101,6 +112,7 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
   };
 
   const createOrLoadSession = async () => {
+    if (!documentId) return;
     try {
       const sessions = await api.getChatSessions(documentId);
       if (sessions.length > 0) {
@@ -117,7 +129,8 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !selectedApiKey || !sessionId || loading) return;
+    if (!input.trim() || !selectedApiKey || loading) return;
+    if (documentId && !sessionId) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -134,14 +147,18 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
       const token = api.getToken();
       if (!token) throw new Error('Not authenticated');
 
-      for await (const data of streamChat(sessionId, userMessage, selectedApiKey, token, mode, lockedSelection)) {
-        if (data.content) {
-          fullContent += data.content;
-          setStreaming(fullContent);
+      if (sessionId) {
+        for await (const data of streamChat(sessionId, userMessage, selectedApiKey, token, mode, lockedSelection)) {
+          if (data.content) {
+            fullContent += data.content;
+            setStreaming(fullContent);
+          }
+          if (data.error) {
+            throw new Error(data.error);
+          }
         }
-        if (data.error) {
-          throw new Error(data.error);
-        }
+      } else {
+        fullContent = 'Please upload a document first to start chatting.';
       }
     } catch (err: any) {
       if (!fullContent) {
@@ -154,8 +171,7 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
           { id: Date.now().toString(), role: 'assistant', content: fullContent },
         ]);
 
-        if (mode === 'edit' && !fullContent.startsWith('Error:')) {
-          // Try new <edit> format first
+        if (mode === 'edit' && !fullContent.startsWith('Error:') && documentId) {
           if (hasEditOperations(fullContent) && documentContent && onReplaceDocument) {
             const operations = parseEditOperations(fullContent);
             if (operations.length > 0) {
@@ -163,9 +179,7 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
               onReplaceDocument(updatedContent);
               setLockedSelection('');
             }
-          }
-          // Fall back to legacy <doc-full> and <doc> format
-          else {
+          } else {
             const docFullMatch = fullContent.match(/<doc-full>([\s\S]*?)<\/doc-full>/);
             if (docFullMatch && onReplaceDocument) {
               onReplaceDocument(docFullMatch[1].trim());
@@ -198,6 +212,7 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
   };
 
   const handleNewChat = async () => {
+    if (!documentId) return;
     try {
       const session = await api.createChatSession(documentId, 'Document Chat');
       setSessionId(session.id);
@@ -207,19 +222,124 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
     }
   };
 
+  // Expanded mode - centered hero style (like ChatGPT/Claude homepage)
+  if (visualMode === 'expanded') {
+    return (
+      <div className="flex flex-col h-full items-center justify-center p-8">
+        {/* Hero Section */}
+        <div className="max-w-2xl w-full text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Sparkles className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold">Doc Studio AI</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            上传文档开始 AI 辅助编辑，或直接开始对话
+          </p>
+        </div>
+
+        {/* Messages (if any) */}
+        {messages.length > 0 && (
+          <div className="max-w-2xl w-full flex-1 overflow-auto mb-4 space-y-4">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                    msg.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">
+                    {msg.role === 'assistant' ? formatMessageContent(msg.content) : msg.content}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {streaming && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] px-4 py-3 rounded-lg bg-secondary">
+                  <p className="whitespace-pre-wrap">{formatMessageContent(streaming)}</p>
+                </div>
+              </div>
+            )}
+            {loading && !streaming && (
+              <div className="flex justify-start">
+                <div className="px-4 py-3 rounded-lg bg-secondary">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* Input Area */}
+        <div className="max-w-2xl w-full">
+          {/* API Key Selector */}
+          <div className="mb-3">
+            <select
+              value={selectedApiKey}
+              onChange={(e) => setSelectedApiKey(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+            >
+              {apiKeys.length === 0 ? (
+                <option value="">{t('chat.noApiKey')}</option>
+              ) : (
+                apiKeys.map((key) => (
+                  <option key={key.id} value={key.id}>
+                    {key.name} ({key.provider} - {key.model})
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* Chat Input */}
+          <div className="relative">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="输入消息，或上传文档开始编辑..."
+              className="w-full px-4 py-3 pr-12 text-base border border-border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-ring min-h-[56px] max-h-[200px]"
+              rows={1}
+              disabled={loading || !selectedApiKey}
+            />
+            <button
+              onClick={handleSend}
+              disabled={loading || !input.trim() || !selectedApiKey}
+              className="absolute right-3 bottom-3 p-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 transition"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Compact mode - sidebar style
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
-        <h3 className="font-medium">{t('chat.title')}</h3>
+        <h3 className="font-medium flex items-center gap-2">
+          <MessageSquare className="w-4 h-4" />
+          {t('chat.title')}
+        </h3>
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleNewChat}
-            className="p-1.5 hover:bg-secondary rounded transition"
-            title="New Chat"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
+          {documentId && (
+            <button
+              onClick={handleNewChat}
+              className="p-1.5 hover:bg-secondary rounded transition"
+              title="New Chat"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="p-1.5 hover:bg-secondary rounded transition"
@@ -280,7 +400,9 @@ export default function ChatPanel({ documentId, selectedText, documentContent, o
                   : 'bg-secondary'
               }`}
             >
-              <p className={`whitespace-pre-wrap ${msg.role === 'assistant' ? 'px-3 py-2' : ''}`}>{msg.role === 'assistant' ? formatMessageContent(msg.content) : msg.content}</p>
+              <p className={`whitespace-pre-wrap ${msg.role === 'assistant' ? 'px-3 py-2' : ''}`}>
+                {msg.role === 'assistant' ? formatMessageContent(msg.content) : msg.content}
+              </p>
             </div>
           </div>
         ))}

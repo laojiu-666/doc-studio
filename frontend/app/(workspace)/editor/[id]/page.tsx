@@ -117,18 +117,6 @@ export default function EditorPage() {
     }
   }, [viewMode]);
 
-  const handleAIEdit = useCallback(async (newContent: string) => {
-    setContent(newContent);
-    if (document) {
-      try {
-        await api.updateDocument(document.id, { content_html: newContent });
-        setPreviewKey(prev => prev + 1);
-      } catch (err) {
-        console.error('Auto-save failed:', err);
-      }
-    }
-  }, [document]);
-
   const handleReplaceDocument = useCallback(async (newContent: string) => {
     setContent(newContent);
     if (document) {
@@ -225,7 +213,7 @@ export default function EditorPage() {
         <div className={`flex-1 overflow-auto ${showChat ? 'mr-96' : ''}`}>
           {viewMode === 'preview' ? (
             <div className="h-full">
-              <DocxPreview key={previewKey} documentId={documentId} token={api.getToken()} />
+              <DocxPreview key={previewKey} documentId={documentId} />
             </div>
           ) : (
             <div className="max-w-4xl mx-auto py-8 px-4">

@@ -2,25 +2,28 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { renderAsync } from 'docx-preview';
+import { api } from '@/lib/api';
 
 interface DocxPreviewProps {
   documentId: string;
-  token: string | null;
 }
 
-export default function DocxPreview({ documentId, token }: DocxPreviewProps) {
+export default function DocxPreview({ documentId }: DocxPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!documentId || !containerRef.current || !token) return;
+    if (!documentId || !containerRef.current) return;
 
     const loadDocument = async () => {
       setLoading(true);
       setError(null);
 
       try {
+        const token = api.getToken();
+        if (!token) throw new Error('Not authenticated');
+
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
         const previewUrl = `${API_URL}/documents/${documentId}/preview/`;
 
@@ -52,15 +55,7 @@ export default function DocxPreview({ documentId, token }: DocxPreviewProps) {
     };
 
     loadDocument();
-  }, [documentId, token]);
-
-  if (!token) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Loading...
-      </div>
-    );
-  }
+  }, [documentId]);
 
   if (error) {
     return (

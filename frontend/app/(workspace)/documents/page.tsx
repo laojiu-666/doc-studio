@@ -1,52 +1,50 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useAuthStore } from '@/lib/store';
+import { Upload, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { FileText, Upload, Trash2, LogOut, Settings } from 'lucide-react';
+import { useAuthStore } from '@/lib/store';
 import { useTranslation } from '@/lib/i18n';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-
-interface Document {
-  id: string;
-  title: string;
-  original_filename: string;
-  file_type: string;
-  updated_at: string;
-}
+import WorkspaceLayout from '@/components/layout/WorkspaceLayout';
+import ChatPanel from '@/components/chat/ChatPanel';
+import DocxPreview from '@/components/editor/DocxPreview';
+import PptPreview from '@/components/editor/PptPreview';
+import {
+  useWorkspaceStore,
+  MENU_ITEMS,
+} from '@/lib/stores/workspace';
 
 export default function DocumentsPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, checkAuth, logout } = useAuthStore();
+  const { user, isAuthenticated, isLoading, logout, checkAuth } = useAuthStore();
   const { t } = useTranslation();
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const {
+    viewMode,
+    activeMenu,
+    currentDocument,
+    uploading,
+    setCurrentDocument,
+    setUploading,
+  } = useWorkspaceStore();
+
+  // Check auth on mount
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+  }, []);
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadDocuments();
-    }
-  }, [isAuthenticated]);
-
-  const loadDocuments = async () => {
-    try {
-      const docs = await api.getDocuments();
-      setDocuments(docs);
-    } catch (err) {
-      console.error('Failed to load documents:', err);
-    }
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,122 +54,141 @@ export default function DocumentsPage() {
     setUploading(true);
     try {
       const doc = await api.uploadDocument(file);
-      router.push(`/editor/${doc.id}`);
+      setCurrentDocument(doc);
     } catch (err: any) {
       alert(err.message || t('documents.uploadFailed'));
     } finally {
       setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('documents.deleteConfirm'))) return;
+  const triggerUpload = () => {
+    fileInputRef.current?.click();
+  };
 
-    try {
-      await api.deleteDocument(id);
-      setDocuments(documents.filter((d) => d.id !== id));
-    } catch (err: any) {
-      alert(err.message || t('documents.deleteFailed'));
+  // Get current menu config
+  const currentMenuConfig = activeMenu
+    ? MENU_ITEMS.find((m) => m.id === activeMenu)
+    : null;
+
+  // Render document preview based on file type
+  const renderDocumentPreview = () => {
+    if (!currentDocument) return null;
+
+    if (currentDocument.file_type === 'word') {
+      return <DocxPreview documentId={currentDocument.id} />;
+    } else if (currentDocument.file_type === 'ppt') {
+      return <PptPreview documentId={currentDocument.id} />;
     }
+
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        Unsupported file type
+      </div>
+    );
   };
 
-  const handleLogout = async () => {
-    await logout();
-    router.push('/login');
+  // Render upload area for selected menu
+  const renderUploadArea = () => {
+    if (!activeMenu || !currentMenuConfig) {
+      return (
+        <div className="text-center text-muted-foreground">
+          <p>请从左侧菜单选择功能</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="text-center">
+        <div
+          onClick={triggerUpload}
+          className="
+            border-2 border-dashed border-border rounded-xl p-12
+            hover:border-primary hover:bg-secondary/30
+            cursor-pointer transition-all duration-200
+          "
+        >
+          {uploading ? (
+            <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary" />
+          ) : (
+            <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          )}
+          <p className="text-lg font-medium mb-2">
+            {uploading ? '上传中...' : `上传 ${currentMenuConfig.label.replace('生成', '')} 文件`}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            支持格式: {currentMenuConfig.accept}
+          </p>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={currentMenuConfig.accept}
+          onChange={handleUpload}
+          disabled={uploading}
+          className="hidden"
+        />
+      </div>
+    );
   };
 
+  // Show loading while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>{t('common.loading')}</p>
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
 
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold">Doc Studio</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
-            <LanguageSwitcher />
-            <Link
-              href="/settings"
-              className="p-2 hover:bg-secondary rounded-lg transition"
-              title={t('common.settings')}
-            >
-              <Settings className="w-5 h-5" />
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="p-2 hover:bg-secondary rounded-lg transition"
-              title={t('common.logout')}
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main content */}
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold">{t('documents.title')}</h2>
-          <label className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg cursor-pointer hover:opacity-90 transition">
-            <Upload className="w-4 h-4" />
-            {uploading ? t('documents.uploading') : t('documents.upload')}
-            <input
-              type="file"
-              accept=".docx,.doc"
-              onChange={handleUpload}
-              disabled={uploading}
-              className="hidden"
-            />
-          </label>
-        </div>
-
-        {documents.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <p>{t('documents.empty')}</p>
+    <WorkspaceLayout onLogout={handleLogout} userEmail={user?.email}>
+      {/* Main Content Area */}
+      <div
+        className={`
+          flex-1 flex flex-col overflow-hidden
+          transition-all duration-300 ease-in-out
+          ${viewMode === 'split' ? 'border-r border-border' : ''}
+        `}
+      >
+        {viewMode === 'chat-focused' ? (
+          // Chat-focused mode: centered chat or upload area
+          <div className="flex-1 flex flex-col">
+            {activeMenu ? (
+              // Show upload area when menu is selected
+              <div className="flex-1 flex items-center justify-center p-8">
+                {renderUploadArea()}
+              </div>
+            ) : (
+              // Show centered chat when no menu selected
+              <ChatPanel visualMode="expanded" />
+            )}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="border border-border rounded-lg p-4 hover:border-primary transition group"
-              >
-                <Link href={`/editor/${doc.id}`} className="block">
-                  <div className="flex items-start gap-3">
-                    <FileText className="w-8 h-8 text-blue-500 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">{doc.title}</h3>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {doc.original_filename}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(doc.updated_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-                <div className="flex justify-end mt-2 opacity-0 group-hover:opacity-100 transition">
-                  <button
-                    onClick={() => handleDelete(doc.id)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded transition"
-                    title={t('common.delete')}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+          // Split mode: document preview
+          <div className="flex-1 overflow-auto">
+            {renderDocumentPreview()}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+
+      {/* Right Chat Panel (only in split mode) */}
+      {viewMode === 'split' && (
+        <div className="w-96 flex-shrink-0 border-l border-border">
+          <ChatPanel
+            visualMode="compact"
+            documentId={currentDocument?.id}
+          />
+        </div>
+      )}
+    </WorkspaceLayout>
   );
 }
